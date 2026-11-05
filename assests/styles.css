@@ -1,17 +1,52 @@
-.stApp{background:#090909;color:#F5F1F2}
-[data-testid="stSidebar"]{background:#111011;border-right:1px solid #34232B}
-h1,h2,h3{color:#F5F1F2;letter-spacing:-.01em}
-.hero{background:linear-gradient(135deg,#4A001F 0%,#800020 55%,#A52A4A 130%);border-radius:18px;padding:28px 32px;margin-bottom:18px;box-shadow:0 10px 30px rgba(128,0,32,.25)}
-.hero h1{margin:0;font-size:2rem}.hero p{margin:6px 0 0;color:#F5F1F2cc}
-.card{background:#181417;border:1px solid #34232B;border-radius:16px;padding:18px 20px;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .15s,border-color .15s;margin-bottom:10px}
-.card:hover{transform:translateY(-2px);border-color:#A52A4A}
-.card .label{color:#A9A0A5;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
-.card .value{font-size:1.7rem;font-weight:700;color:#F5F1F2;margin-top:4px}
-.card .sub{color:#A9A0A5;font-size:.8rem;margin-top:2px}
-.brand{font-size:1.35rem;font-weight:800;color:#F5F1F2}.brand span{color:#A52A4A}
-.tag{color:#A9A0A5;font-size:.78rem;margin-bottom:12px}
-.stButton>button,.stDownloadButton>button{background:linear-gradient(135deg,#800020,#4A001F);color:#F5F1F2;border:1px solid #A52A4A;border-radius:10px;transition:all .15s}
-.stButton>button:hover,.stDownloadButton>button:hover{border-color:#F5F1F2;box-shadow:0 4px 14px rgba(165,42,74,.4)}
-[data-testid="stFileUploader"] section{background:#181417;border:1px dashed #A52A4A;border-radius:14px}
-.stTabs [aria-selected="true"]{color:#A52A4A!important}
-@media(max-width:768px){.hero{padding:18px}.card .value{font-size:1.3rem}}
+/* PredictIQ - Black & Burgundy Theme */
+
+.stApp {
+background-color: #090909;
+color: #F5F1F2;
+}
+
+[data-testid="stSidebar"] {
+background-color: #111011;
+border-right: 1px solid #34232B;
+}
+
+[data-testid="stMetric"] {
+background: linear-gradient(145deg, #181417, #24121B);
+border: 1px solid #4A001F;
+padding: 18px;
+border-radius: 14px;
+}
+
+h1, h2, h3 {
+color: #F5F1F2;
+}
+
+.stButton > button {
+background: linear-gradient(135deg, #800020, #A52A4A);
+color: white;
+border: none;
+border-radius: 9px;
+font-weight: 600;
+}
+
+.stButton > button:hover {
+background: #A52A4A;
+color: white;
+border: 1px solid #D45A78;
+}
+
+[data-testid="stFileUploader"] {
+background-color: #181417;
+border: 1px dashed #800020;
+border-radius: 12px;
+padding: 15px;
+}
+
+[data-testid="stDataFrame"] {
+border: 1px solid #4A001F;
+border-radius: 10px;
+}
+
+hr {
+border-color: #34232B;
+}
