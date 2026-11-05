@@ -1,0 +1,80 @@
+"""Core logic tests (no Streamlit needed). Run: python -m pytest tests -q   or   python tests/test_core.py"""
+import io, os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import numpy as np, pandas as pd
+from sklearn.datasets import load_iris, make_regression
+from modules import data_loader, data_cleaning as dc, automl, prediction as pr, gemini_ai, report_generator as rg, eda
+from modules import model_evaluation as ev
+from utils.validation import ValidationError
+
+def iris_df():
+    d = load_iris(as_frame=True).frame; d["species"] = d.target.map(dict(enumerate(load_iris().target_names))); return d.drop(columns="target")
+def reg_df():
+    X, y = make_regression(300, 4, noise=5, random_state=0); d = pd.DataFrame(X, columns=list("abcd")); d["y"] = y
+    d["grp"] = np.random.RandomState(0).choice(["u", "v"], 300); return d
+
+def test_csv_excel_upload():
+    df = iris_df(); csv = df.to_csv(index=False).encode()
+    assert data_loader.load_file(csv, "a.csv").shape == df.shape
+    b = io.BytesIO(); df.to_excel(b, index=False); assert data_loader.load_file(b.getvalue(), "a.xlsx").shape == df.shape
+
+def test_invalid_uploads():
+    for args in [(b"", "a.csv"), (b"x", "a.exe"), (b"a,b\n", "a.csv")]:
+        try: data_loader.load_file(*args); assert False, args
+        except ValidationError: pass
+
+def test_cleaning():
+    d = iris_df(); d.loc[0:4, "sepal length (cm)"] = np.nan; d.loc[0:2, "species"] = None
+    d = pd.concat([d, d.iloc[[10, 11]]], ignore_index=True)
+    assert len(dc.remove_duplicates(d)) < len(d)
+    f = dc.fill_numeric(d, ["sepal length (cm)"], "median"); assert f["sepal length (cm)"].isna().sum() == 0
+    f = dc.fill_categorical(d, ["species"], "mode"); assert f.species.isna().sum() == 0
+    assert d["sepal length (cm)"].isna().sum() == 5  # original untouched
+    assert not dc.detect_outliers(d).empty
+
+def test_classification_and_predictions():
+    d = iris_df(); run = automl.train_supervised(d, "species", cv=3)
+    assert run["problem"] == "classification" and "species" not in run["features"]
+    comp = ev.comparison_table(run["results"], "classification"); assert "F1" in comp
+    best = ev.best_model(run["results"], "classification"); assert best["metrics"]["Accuracy"] > .8
+    b = pr.make_bundle(run, best)
+    vals = {f: run["schema"][f]["default"] for f in run["features"]}
+    assert pr.predict_single(b, vals)["Prediction"].iloc[0] in run["classes"]
+    assert len(pr.predict_batch(b, d.head(7))) == 7
+    try: pr.predict_batch(b, d[["species"]]); assert False
+    except pr.PredictionError: pass
+    try: pr.predict_single(b, {**vals, run["features"][0]: "abc"}); assert False
+    except pr.PredictionError: pass
+    assert len(pr.export_model(b)) > 100
+
+def test_regression():
+    run = automl.train_supervised(reg_df(), "y", cv=3); assert run["problem"] == "regression"
+    best = ev.best_model(run["results"], "regression"); assert best["metrics"]["R2"] > .9
+    assert "RMSE" in run["results"][0]["metrics"]
+
+def test_clustering():
+    r = automl.cluster(iris_df(), "K-Means", 3); assert r["n_clusters"] == 3 and r["silhouette"] > .3
+    r = automl.cluster(iris_df(), "DBSCAN", eps=0.9, min_samples=5); assert "n_clusters" in r
+    assert not automl.kmeans_scan(iris_df()).empty
+
+def test_empty_and_small_data():
+    try: automl.train_supervised(iris_df().head(5), "species"); assert False
+    except ValueError: pass
+
+def test_gemini_missing_key():
+    os.environ.pop("GEMINI_API_KEY", None)
+    try: gemini_ai.ask("hi", {}); assert False
+    except gemini_ai.GeminiError as e: assert "GEMINI_API_KEY" in str(e)
+    try: gemini_ai.ask("hi", {}, api_key="bad"); assert False
+    except gemini_ai.GeminiError: pass  # SDK missing or request fails -> handled
+
+def test_pdf():
+    d = iris_df(); run = automl.train_supervised(d, "species", cv=0)
+    comp = ev.comparison_table(run["results"], "classification")
+    pdf = rg.build_pdf(df=d, run=run, comparison=comp, eda=eda.numeric_stats(d), cleaning_log=["x"], ai_text="a<b")
+    assert pdf[:4] == b"%PDF"
+    assert rg.build_pdf()[:4] == b"%PDF"  # empty state
+
+if __name__ == "__main__":
+    for n, f in list(globals().items()):
+        if n.startswith("test_"): f(); print("PASS", n)
