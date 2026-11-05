@@ -1,0 +1,102 @@
+/* =====================================
+PredictIQ - Premium Black & Burgundy
+===================================== */
+
+.stApp {
+background: #090909;
+color: #F5F1F2;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+background: #111011;
+border-right: 1px solid #4A001F;
+}
+
+/* Main headings */
+h1, h2, h3, h4 {
+color: #F5F1F2 !important;
+}
+
+/* Paragraphs */
+p, label, span {
+color: #E5DDE1;
+}
+
+/* Metric cards */
+[data-testid="stMetric"] {
+background: linear-gradient(145deg, #181417, #2B101B);
+border: 1px solid #800020;
+border-radius: 14px;
+padding: 20px;
+}
+
+/* Buttons */
+.stButton > button {
+background: linear-gradient(135deg, #800020, #A52A4A);
+color: white !important;
+border: none;
+border-radius: 10px;
+padding: 10px 20px;
+font-weight: 600;
+transition: 0.3s ease;
+}
+
+.stButton > button:hover {
+background: #A52A4A;
+border: 1px solid #D45A78;
+color: white !important;
+}
+
+/* File uploader */
+[data-testid="stFileUploader"] {
+background: #181417;
+border: 1px dashed #800020;
+border-radius: 12px;
+padding: 15px;
+}
+
+/* Dataframes */
+[data-testid="stDataFrame"] {
+border: 1px solid #4A001F;
+border-radius: 10px;
+}
+
+/* Input fields */
+.stTextInput input,
+.stNumberInput input,
+.stSelectbox div[data-baseweb="select"] {
+background-color: #181417;
+color: white;
+border-color: #800020;
+}
+
+/* Dividers */
+hr {
+border-color: #4A001F;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab"] {
+color: #F5F1F2;
+}
+
+.stTabs [aria-selected="true"] {
+border-bottom-color: #A52A4A !important;
+color: #A52A4A !important;
+}
+
+/* Success messages */
+[data-testid="stAlert"] {
+border-radius: 10px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+background: #800020;
+border-radius: 10px;
+}
