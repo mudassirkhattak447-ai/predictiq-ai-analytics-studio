@@ -8,7 +8,41 @@ from utils.helpers import df_to_csv_bytes, log_activity, numeric_cols, categoric
 from utils.validation import ValidationError
 
 st.set_page_config(page_title="PredictIQ", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
-st.markdown(f"<style>{(Path(__file__).parent / 'assets' / 'styles.css').read_text()}</style>", unsafe_allow_html=True)
+CSS = """
+.stApp{background:radial-gradient(1200px 600px at 80% -10%,#2a0a16 0%,#090909 55%)!important;color:#F5F1F2}
+[data-testid="stHeader"]{background:transparent}
+.block-container{padding-top:1.6rem;max-width:1400px}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#140d11,#0d0a0c)!important;border-right:1px solid #34232B}
+.brand{font-size:1.5rem;font-weight:800;color:#F5F1F2;letter-spacing:-.02em}.brand span{color:#A52A4A}
+.tag{color:#A9A0A5;font-size:.78rem;margin-bottom:14px}
+[data-testid="stSidebar"] [role="radiogroup"]{gap:4px}
+[data-testid="stSidebar"] [role="radiogroup"] label{padding:10px 14px;border-radius:12px;border:1px solid transparent;width:100%;transition:all .15s}
+[data-testid="stSidebar"] [role="radiogroup"] label>div:first-child{display:none}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover{background:#1c1318;border-color:#34232B}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){background:linear-gradient(135deg,#800020,#4A001F);border-color:#A52A4A;box-shadow:0 6px 18px rgba(128,0,32,.35)}
+h1,h2,h3{color:#F5F1F2;letter-spacing:-.01em}
+.wb{font-size:2rem;font-weight:800;color:#F5F1F2;line-height:1.1}
+.ws{color:#A9A0A5;margin:4px 0 6px}.wl{width:56px;height:3px;border-radius:3px;background:linear-gradient(90deg,#A52A4A,#800020);margin-bottom:18px}
+.kpi{display:flex;align-items:center;gap:14px;background:linear-gradient(145deg,#1d1419,#141012);border:1px solid #34232B;border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.5);transition:transform .15s,border-color .15s;min-height:104px}
+.kpi:hover{transform:translateY(-2px);border-color:#A52A4A}
+.ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:linear-gradient(135deg,#800020,#4A001F);flex:none}
+.kpi .label{color:#A9A0A5;font-size:.78rem}.kpi .value{font-size:1.55rem;font-weight:800;color:#F5F1F2;line-height:1.15}
+.kpi .sub{color:#D9778F;font-size:.74rem;margin-top:2px}
+.card{background:#181417;border:1px solid #34232B;border-radius:16px;padding:18px 20px;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .15s,border-color .15s;margin-bottom:10px}
+.card:hover{transform:translateY(-2px);border-color:#A52A4A}
+.card .label{color:#A9A0A5;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
+.card .value{font-size:1.7rem;font-weight:700;color:#F5F1F2;margin-top:4px}
+.card .sub{color:#A9A0A5;font-size:.8rem;margin-top:2px}
+[data-testid="stVerticalBlockBorderWrapper"]{background:#181417;border:1px solid #34232B!important;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.ins{display:flex;gap:10px;margin:10px 0;color:#F5F1F2;font-size:.92rem}.ins b.ok{color:#A52A4A}
+.act{color:#A9A0A5;font-size:.84rem;padding:6px 0;border-bottom:1px solid #2a1c23}
+.stButton>button,.stDownloadButton>button{background:linear-gradient(135deg,#800020,#4A001F)!important;color:#F5F1F2!important;border:1px solid #A52A4A!important;border-radius:12px;transition:all .15s}
+.stButton>button:hover,.stDownloadButton>button:hover{border-color:#F5F1F2!important;box-shadow:0 4px 14px rgba(165,42,74,.45)}
+[data-testid="stFileUploader"] section{background:#181417;border:1px dashed #A52A4A;border-radius:14px}
+.stTabs [aria-selected="true"]{color:#A52A4A!important}
+@media(max-width:768px){.wb{font-size:1.5rem}.kpi .value{font-size:1.25rem}}
+"""
+st.markdown(f"<style>{CSS}</style>", unsafe_allow_html=True)
 
 S = st.session_state
 for k, v in {"df_raw": None, "df": None, "name": None, "clean_log": [], "run": None, "bundles": {}, "cluster": None,
@@ -24,7 +58,7 @@ def card(label, value, sub=""):
 
 def need_data():
     if S.df is None:
-        st.info("Upload a dataset first in **Dataset Upload**."); return True
+        st.info("Upload a dataset first in *Dataset Upload*."); return True
     return False
 
 def go(page): S.page = page
@@ -33,33 +67,62 @@ def go(page): S.page = page
 def cached_eda_stats(df): return eda.numeric_stats(df), eda.categorical_stats(df)
 
 # ---------------- pages ----------------
+def kpi(icon, label, value, sub=""):
+    st.markdown(f'<div class="kpi"><div class="ico">{icon}</div><div><div class="label">{label}</div><div class="value">{value}</div><div class="sub">{sub}</div></div></div>', unsafe_allow_html=True)
+
 def overview():
-    st.markdown('<div class="hero"><h1>Welcome to PredictIQ</h1><p>Transform Data Into Intelligence. Upload data, clean it, explore it, train models and get AI-powered explanations.</p></div>', unsafe_allow_html=True)
+    import plotly.express as px
+    st.markdown('<div class="wb">Welcome Back!</div><div class="ws">Turn your data into intelligence.</div><div class="wl"></div>', unsafe_allow_html=True)
     run = S.run; best = ev.best_model(run["results"], run["problem"]) if run else None
     pk = ev.PRIMARY[run["problem"]] if run else ""
-    c = st.columns(6)
-    with c[0]: card("Datasets analyzed", S.datasets)
-    with c[1]: card("Records processed", f"{S.records:,}")
-    with c[2]: card("Columns", S.df.shape[1] if S.df is not None else 0)
-    with c[3]: card("Models trained", len(run["results"]) if run else 0)
-    with c[4]: card("Best model", f"{best['metrics'][pk]:.3f}" if best else "—", f"{best['name']} ({pk})" if best else "No model yet")
-    with c[5]: card("Latest analysis", S.activity[0][:16] if S.activity else "—", S.activity[0][19:] if S.activity else "")
-    a, b = st.columns(2)
-    with a:
-        st.subheader("Quick actions")
-        for lbl, p in [("📤 Upload a dataset", "Dataset Upload"), ("📊 Explore data", "Exploratory Data Analysis"), ("⚙️ Train models", "AutoML Studio"), ("🤖 Ask AI analyst", "AI Data Analyst")]:
-            st.button(lbl, on_click=go, args=(p,), use_container_width=True, key=f"qa{p}")
-        st.subheader("Recent activity")
-        for x in S.activity[:6] or ["No activity yet."]: st.caption(x)
-    with b:
-        st.subheader("Dataset overview")
-        if S.df is not None:
-            st.write(f"**{S.name}** — {len(S.df):,} rows × {S.df.shape[1]} columns"); st.dataframe(dx.info_table(S.df), height=220, use_container_width=True)
-        else: st.caption("No dataset loaded.")
-        st.subheader("Model performance summary")
-        if run: st.dataframe(ev.comparison_table(run["results"], run["problem"]), use_container_width=True, hide_index=True)
+    df = S.df
+    k = st.columns(5)
+    with k[0]: kpi("🗄️", "Total Records", f"{len(df):,}" if df is not None else "0", S.name or "No dataset loaded")
+    with k[1]: kpi("📑", "Columns", df.shape[1] if df is not None else 0, f"{S.datasets} dataset(s) analyzed")
+    with k[2]: kpi("⚠️", "Missing Cells", f"{int(df.isna().sum().sum()):,}" if df is not None else "0", f"{int(df.duplicated().sum()):,} duplicate rows" if df is not None else "")
+    with k[3]: kpi("🧠", "Models Trained", len(run["results"]) if run else 0, run["problem"].title() if run else "None yet")
+    with k[4]: kpi("🎯", f"Best {pk or 'Score'}", f"{best['metrics'][pk]:.3f}" if best else "—", best["name"] if best else "Train a model")
+    st.write("")
+    a, b = st.columns([2, 1])
+    with a, st.container(border=True):
+        st.subheader("📊 Data Distribution")
+        num = numeric_cols(df) if df is not None else []
+        if num:
+            col = st.selectbox("Variable", num, key="ov_var", label_visibility="collapsed")
+            st.plotly_chart(eda.histogram(df, col).update_layout(height=320, title=None), use_container_width=True)
+        else: st.caption("Upload a dataset with numeric columns to see its distribution.")
+    with b, st.container(border=True):
+        st.subheader("🥧 Category Share")
+        cats = [c for c in categorical_cols(df) if df[c].nunique() <= 15] if df is not None else []
+        if cats:
+            col = st.selectbox("Category", cats, key="ov_cat", label_visibility="collapsed")
+            st.plotly_chart(eda.pie(df, col).update_layout(height=320, title=None, showlegend=True), use_container_width=True)
+        else: st.caption("No low-cardinality categorical column found.")
+    c1, c2, c3 = st.columns(3)
+    with c1, st.container(border=True):
+        st.subheader("🏆 Model Performance")
+        if run:
+            comp = ev.comparison_table(run["results"], run["problem"])
+            st.plotly_chart(eda.style(px.bar(comp, x="Model", y=pk)).update_layout(height=260), use_container_width=True)
         else: st.caption("No models trained yet.")
-        if S.ai_text: st.subheader("AI insight"); st.write(S.ai_text[:600] + ("…" if len(S.ai_text) > 600 else ""))
+    with c2, st.container(border=True):
+        st.subheader("💡 Key Insights")
+        items = []
+        if df is not None:
+            mp = df.isna().sum().sum() / max(df.size, 1) * 100
+            items.append(f"Dataset has <b>{len(df):,}</b> rows and <b>{df.shape[1]}</b> columns.")
+            items.append(f"<b>{mp:.2f}%</b> of cells are missing; <b>{int(df.duplicated().sum()):,}</b> duplicate rows.")
+            tc = eda.top_correlations(df, 1)
+            if len(tc): items.append(f"Strongest correlation: <b>{tc.iloc[0,0]}</b> ↔️ <b>{tc.iloc[0,1]}</b> ({tc.iloc[0,2]:+.2f}).")
+        if best: items.append(f"Best model: <b>{best['name']}</b> ({pk} = {best['metrics'][pk]:.3f}).")
+        for t in items or ["Insights appear here once you upload data."]: st.markdown(f'<div class="ins"><b class="ok">✔️</b><span>{t}</span></div>', unsafe_allow_html=True)
+        if S.ai_text: st.caption("AI summary"); st.write(S.ai_text[:350] + ("…" if len(S.ai_text) > 350 else ""))
+    with c3, st.container(border=True):
+        st.subheader("🕒 Recent Activity")
+        for x in S.activity[:6] or ["No activity yet."]: st.markdown(f'<div class="act">{x}</div>', unsafe_allow_html=True)
+    st.write(""); q = st.columns(4)
+    for i, (lbl, p) in enumerate([("📤 Upload a dataset", "Dataset Upload"), ("📊 Explore data", "Exploratory Data Analysis"), ("⚙️ Train models", "AutoML Studio"), ("🤖 Ask AI analyst", "AI Data Analyst")]):
+        q[i].button(lbl, on_click=go, args=(p,), use_container_width=True, key=f"qa{p}")
 
 def upload():
     st.header("Dataset Upload"); st.caption("CSV, XLSX or XLS · max 50 MB · data stays in your session.")
@@ -133,9 +196,9 @@ def cleaning():
     a, b, c = st.columns(3)
     if a.button("✅ Apply changes to working dataset", disabled=not log):
         S.df = work; S.clean_log += log; S.run = None; S.cluster = None; S.bundles = {}; log_activity(S, "Applied cleaning: " + "; ".join(log)); st.rerun()
-    if b.button("↩ Reset to original upload"):
+    if b.button("↩️ Reset to original upload"):
         S.df = S.df_raw.copy(); S.clean_log = []; log_activity(S, "Reset dataset to original"); st.rerun()
-    c.download_button("⬇ Download cleaned dataset", df_to_csv_bytes(S.df), "cleaned_dataset.csv", "text/csv")
+    c.download_button("⬇️ Download cleaned dataset", df_to_csv_bytes(S.df), "cleaned_dataset.csv", "text/csv")
 
 def eda_page():
     st.header("Exploratory Data Analysis")
@@ -180,7 +243,7 @@ def automl_page():
         method = st.radio("Algorithm", ["K-Means", "DBSCAN"], horizontal=True); k = eps = ms = None
         if method == "K-Means": k = st.slider("Clusters (k)", 2, 12, 3)
         else: eps = st.slider("eps", 0.1, 5.0, 0.8); ms = st.slider("min_samples", 2, 30, 5)
-        if st.button("▶ Run clustering"):
+        if st.button("▶️ Run clustering"):
             try:
                 with st.spinner("Clustering…"): S.cluster = automl.cluster(df, method, k or 3, eps or .5, ms or 5, seed)
                 log_activity(S, f"{method} clustering on {S.name}")
@@ -193,132 +256,18 @@ def automl_page():
             with c[2]: card("Noise points", r["noise"])
             p = pd.DataFrame(r["pca"], columns=["PC1", "PC2"]); p["Cluster"] = r["labels"].astype(str)
             import plotly.express as px; st.plotly_chart(eda.style(px.scatter(p, x="PC1", y="PC2", color="Cluster"), "Cluster map (PCA)"), use_container_width=True)
-            out = df.copy(); out["Cluster"] = r["labels"]; st.download_button("⬇ Download clustered data", df_to_csv_bytes(out), "clustered.csv", "text/csv")
+            out = df.copy(); out["Cluster"] = r["labels"]; st.download_button("⬇️ Download clustered data", df_to_csv_bytes(out), "clustered.csv", "text/csv")
         return
-    problem = automl.detect_problem(df[target]); st.write(f"Detected problem type: **{problem}**")
+    problem = automl.detect_problem(df[target]); st.write(f"Detected problem type: *{problem}*")
     problem = st.radio("Override if needed", ["classification", "regression"], index=["classification", "regression"].index(problem), horizontal=True)
     names = st.multiselect("Models", list(automl.available_models(problem)), default=list(automl.available_models(problem)))
     if not automl.HAS_XGB: st.caption("XGBoost is not installed; it will be skipped.")
     c1, c2 = st.columns(2); ts = c1.slider("Test size", .1, .4, .2); cv = c2.slider("CV folds (0 = off)", 0, 10, 5)
-    if st.button("▶ Train models", disabled=not names):
+    if st.button("▶️ Train models", disabled=not names):
         bar = st.progress(0.0, "Starting…")
         try:
             run = automl.train_supervised(df, target, problem, names, ts, cv, int(seed), lambda p, t: bar.progress(p, t))
             S.run = run; S.bundles = {r["name"]: pr.make_bundle(run, r) for r in run["results"]}; S.preds = None
             log_activity(S, f"Trained {len(run['results'])} {problem} models (target: {target})"); st.success("Training complete. See Model Comparison."); 
             for f in run["failed"]: st.warning(f"{f['name']} failed: {f['error']}")
-        except Exception as e: st.error(f"Training failed: {e}")
-        finally: bar.empty()
-
-def comparison():
-    st.header("Model Comparison")
-    run = S.run
-    if not run: st.info("Train models in AutoML Studio first. (Clustering results are shown in AutoML Studio.)"); return
-    problem = run["problem"]; comp = ev.comparison_table(run["results"], problem); best = ev.best_model(run["results"], problem)
-    st.caption(f"{problem.title()} · target **{run['target']}** · {run['n_train']} train / {run['n_test']} test rows. Ranked by {ev.PRIMARY[problem]} on the held-out test set.")
-    if best: st.success(f"Best model: **{best['name']}** ({ev.PRIMARY[problem]} = {best['metrics'][ev.PRIMARY[problem]]:.4f})")
-    st.dataframe(comp, use_container_width=True, hide_index=True)
-    import plotly.express as px
-    metrics = [m for m in comp.columns if m not in ("Model",) and comp[m].notna().any()]
-    cols = st.columns(2)
-    for i, m in enumerate(metrics):
-        cols[i % 2].plotly_chart(eda.style(px.bar(comp, x="Model", y=m), m), use_container_width=True)
-    pick = st.selectbox("Inspect model", [r["name"] for r in run["results"]], index=[r["name"] for r in run["results"]].index(best["name"]) if best else 0)
-    r = next(x for x in run["results"] if x["name"] == pick)
-    if len(r["importance"]): st.plotly_chart(eda.style(px.bar(r["importance"].iloc[::-1], x="Importance", y="Feature", orientation="h"), "Feature importance"), use_container_width=True)
-    if problem == "classification":
-        st.plotly_chart(eda.style(px.imshow(r["confusion"], text_auto=True, color_continuous_scale=eda.SCALE), "Confusion matrix"), use_container_width=True)
-    else:
-        d = pd.DataFrame({"Actual": r["actual"], "Predicted": r["predicted"]}); fig = px.scatter(d, x="Actual", y="Predicted", opacity=.7)
-        lo, hi = float(d.min().min()), float(d.max().max()); fig.add_shape(type="line", x0=lo, y0=lo, x1=hi, y1=hi, line=dict(color="#F5F1F2", dash="dash"))
-        st.plotly_chart(eda.style(fig, "Actual vs predicted"), use_container_width=True)
-
-def prediction_page():
-    st.header("Prediction Center")
-    if not S.bundles: st.info("Train a model first."); return
-    name = st.selectbox("Trained model", list(S.bundles)); b = S.bundles[name]
-    st.caption(f"{b['problem'].title()} model predicting **{b['target']}** from {len(b['features'])} features.")
-    t1, t2 = st.tabs(["Single prediction", "Batch (CSV)"])
-    with t1:
-        vals = {}; cols = st.columns(3)
-        for i, f in enumerate(b["features"]):
-            sp = b["schema"][f]
-            with cols[i % 3]:
-                if sp["type"] == "numeric": vals[f] = st.number_input(f, value=sp["default"], help=f"Training range {sp['min']:.4g} – {sp['max']:.4g}")
-                else: vals[f] = st.selectbox(f, sp["options"])
-        if st.button("🎯 Predict"):
-            try:
-                out = pr.predict_single(b, vals); st.success(f"Predicted {b['target']}: **{out['Prediction'].iloc[0]}**" + (f" (confidence {out['Confidence'].iloc[0]:.1%})" if "Confidence" in out else ""))
-                for f in b["features"]:
-                    sp = b["schema"][f]
-                    if sp["type"] == "numeric" and not sp["min"] <= vals[f] <= sp["max"]: st.warning(f"'{f}' is outside the training range; extrapolation may be unreliable.")
-                S.preds = out; log_activity(S, f"Single prediction with {name}"); st.download_button("⬇ Download result", df_to_csv_bytes(out), "prediction.csv")
-            except pr.PredictionError as e: st.error(str(e))
-    with t2:
-        st.caption("Required columns: " + ", ".join(b["features"]))
-        up = st.file_uploader("Batch CSV", type=["csv"], key="batch")
-        if up is not None:
-            try:
-                bd = data_loader.load_file(up.getvalue(), up.name); out = pr.predict_batch(b, bd)
-                S.preds = out; log_activity(S, f"Batch prediction: {len(out):,} rows"); st.dataframe(out.head(100), use_container_width=True)
-                st.download_button("⬇ Download predictions", df_to_csv_bytes(out), "batch_predictions.csv", "text/csv")
-            except (ValidationError, pr.PredictionError) as e: st.error(str(e))
-            except Exception: st.error("Batch prediction failed. Check that column types match the training data.")
-
-def ai_page():
-    st.header("AI Data Analyst · Gemini Flash")
-    if need_data(): return
-    key = gemini_ai.get_api_key(st.secrets if hasattr(st, "secrets") else None)
-    if not key: st.warning("GEMINI_API_KEY not found. Set it as an environment variable or in Streamlit secrets (see Settings).")
-    st.caption("Only column names, types and aggregate statistics are sent to Gemini — never raw rows.")
-    ctx = {"dataset": gemini_ai.dataset_context(S.df, eda.summary_for_ai(S.df)), "model_results": gemini_ai.model_context(S.run)}
-    cols = st.columns(3)
-    for i, (lbl, p) in enumerate(gemini_ai.PROMPTS.items()):
-        if cols[i % 3].button(lbl, use_container_width=True, key=f"ai{i}"):
-            try:
-                with st.spinner("Analyzing…"): S.ai_text = gemini_ai.ask(p, ctx, key)
-                log_activity(S, f"AI: {lbl}")
-            except gemini_ai.GeminiError as e: st.error(str(e))
-    q = st.text_area("Ask a question about your dataset")
-    if st.button("Ask") and q.strip():
-        try:
-            with st.spinner("Thinking…"): S.ai_text = gemini_ai.ask(q.strip()[:1000], ctx, key)
-        except gemini_ai.GeminiError as e: st.error(str(e))
-    if S.ai_text: st.markdown(S.ai_text); st.caption("AI output is advisory; verify against the statistics shown in the app.")
-
-def reports():
-    st.header("Reports & Downloads")
-    if need_data(): return
-    run = S.run; comp = ev.comparison_table(run["results"], run["problem"]) if run else None
-    if st.button("📄 Generate PDF report"):
-        try:
-            S["pdf"] = rg.build_pdf(dataset_name=S.name, df=S.df, cleaning_log=S.clean_log, eda=eda.numeric_stats(S.df), run=run, comparison=comp, predictions=S.preds, ai_text=S.ai_text)
-            log_activity(S, "Generated PDF report")
-        except Exception as e: st.error(f"Report generation failed: {e}")
-    if S.get("pdf"): st.download_button("⬇ Download PDF", S["pdf"], "predictiq_report.pdf", "application/pdf")
-    c = st.columns(3)
-    c[0].download_button("⬇ Cleaned dataset (CSV)", df_to_csv_bytes(S.df), "cleaned_dataset.csv", "text/csv")
-    if comp is not None: c[1].download_button("⬇ Model comparison (CSV)", df_to_csv_bytes(comp), "model_comparison.csv", "text/csv")
-    if S.preds is not None: c[2].download_button("⬇ Predictions (CSV)", df_to_csv_bytes(S.preds), "predictions.csv", "text/csv")
-    if S.bundles:
-        n = st.selectbox("Trained model to export", list(S.bundles))
-        st.download_button("⬇ Download trained model (.joblib)", pr.export_model(S.bundles[n]), f"{n.replace(' ', '_').lower()}.joblib")
-        st.caption("Only load .joblib files you created yourself; joblib/pickle files can execute code when loaded. PredictIQ never loads uploaded model files.")
-
-def settings():
-    st.header("Settings")
-    st.write("**Gemini API key:** " + ("✅ configured" if gemini_ai.get_api_key(st.secrets if hasattr(st, "secrets") else None) else "❌ not found"))
-    st.code('# Local: export GEMINI_API_KEY="your-key"\n# Streamlit Cloud: App → Settings → Secrets\nGEMINI_API_KEY = "your-key"', language="toml")
-    st.write(f"XGBoost available: **{automl.HAS_XGB}** · Upload limit: 50 MB")
-    if st.button("🗑 Clear all session data"):
-        for k in list(S.keys()): del S[k]
-        st.rerun()
-
-# ---------------- shell ----------------
-with st.sidebar:
-    st.markdown('<div class="brand">Predict<span>IQ</span></div><div class="tag">Transform Data Into Intelligence.</div>', unsafe_allow_html=True)
-    st.radio("Navigation", list(PAGES), key="page", format_func=lambda p: f"{PAGES[p]}  {p}", label_visibility="collapsed")
-    if S.df is not None: st.caption(f"📁 {S.name}\n\n{len(S.df):,} rows × {S.df.shape[1]} cols")
-{"Overview": overview, "Dataset Upload": upload, "Data Explorer": explorer, "Data Cleaning": cleaning, "Exploratory Data Analysis": eda_page,
- "AutoML Studio": automl_page, "Model Comparison": comparison, "Prediction Center": prediction_page, "AI Data Analyst": ai_page,
- "Reports & Downloads": reports, "Settings": settings}[S.page]()
+        except Exception as e: st.error(f"Training failed:
